@@ -88,8 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
             handleDialMovement(e.target, e.clientX, e.clientY);
         });
 
-        dial.addEventListener('touchstart', () => {
+        dial.addEventListener('touchstart', (e) => {
             isDrawing = true;
+            e.preventDefault();
         });
         dial.addEventListener('touchend', () => isDrawing = false);
         dial.addEventListener('touchmove', (e) => {
@@ -118,10 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
             isDragging = false;
             etchASketch.style.cursor = 'grab';
             etchASketch.style.transform = 'translate(0, 0)';
-
-            // Reset canvas after "shaking"
-            lineHistory = []; // Clear the line history
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+            lineHistory = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             setupCanvas();
         }
     });
@@ -132,10 +131,43 @@ document.addEventListener('DOMContentLoaded', () => {
             const dy = e.clientY - dragStartY;
             etchASketch.style.transform = `translate(${dx}px, ${dy}px)`;
 
-            // Fading effect while moving
             ctx.globalAlpha = 0.9;
             redrawLines();
-            ctx.globalAlpha = 1.0; // Reset alpha
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    etchASketch.addEventListener('touchstart', (e) => {
+        if (!e.target.classList.contains('dial')) {
+            const touch = e.touches[0];
+            dragStartX = touch.clientX - etchASketch.offsetLeft;
+            dragStartY = touch.clientY - etchASketch.offsetTop;
+            isDragging = true;
+            document.addEventListener('touchmove', onTouchMove);
+        }
+    });
+
+    document.addEventListener('touchend', () => {
+        if (isDragging) {
+            document.removeEventListener('touchmove', onTouchMove);
+            isDragging = false;
+            etchASketch.style.transform = 'translate(0, 0)';
+            lineHistory = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            setupCanvas();
+        }
+    });
+
+    function onTouchMove(e) {
+        if (isDragging) {
+            const touch = e.touches[0];
+            const dx = touch.clientX - dragStartX;
+            const dy = touch.clientY - dragStartY;
+            etchASketch.style.transform = `translate(${dx}px, ${dy}px)`;
+
+            ctx.globalAlpha = 0.9;
+            redrawLines();
+            ctx.globalAlpha = 1.0;
         }
     }
 });
