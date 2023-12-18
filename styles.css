@@ -12,10 +12,10 @@ body, html {
 #etchASketch {
     position: relative;
     width: 60vw;
-    height: 40vw;
+    height: calc(40vw + 100px); 
     background-color: red;
     border: solid 3px black;
-    border-radius: 10px;
+    border-radius: 10px 10px 0 0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -27,11 +27,12 @@ body, html {
     width: 90%;
     height: 70%;
     border: solid 2px black;
+    margin-top: -50px; 
 }
 
 .dial {
     position: absolute;
-    bottom: 15px;
+    bottom: 10px; 
     width: 80px;
     height: 80px;
     border-radius: 50%;
@@ -63,7 +64,7 @@ body, html {
 @media (max-width: 768px) {
     #etchASketch {
         width: 90vw;
-        height: 70vw;
+        height: calc(70vw + 100px); 
     }
 
     .dial {
