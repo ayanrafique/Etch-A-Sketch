@@ -73,10 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetCanvasAndNeedle() {
         offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+    
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        x = canvas.width / 2;
-        y = canvas.height / 2;
-        drawNeedlePoint(x, y);
+        drawNeedlePoint(x, y); 
     }
 
     function getAngle(cx, cy, ex, ey) {
