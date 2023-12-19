@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetStrokeStyle();
         ctx.lineWidth = offscreenCtx.lineWidth = 1;
         ctx.lineCap = offscreenCtx.lineCap = 'round';
+        drawNeedlePoint(x, y);  // Draw the initial needle point
     }
 
     setupCanvas();
@@ -68,6 +69,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.beginPath();
         ctx.arc(nx, ny, needleRadius, 0, 2 * Math.PI);
         ctx.fill();
+    }
+
+    function resetCanvasAndNeedle() {
+        offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        x = canvas.width / 2;
+        y = canvas.height / 2;
+        drawNeedlePoint(x, y);
     }
 
     function getAngle(cx, cy, ex, ey) {
@@ -134,8 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isDragging = false;
             etchASketch.style.cursor = 'grab';
             etchASketch.style.transform = 'translate(0, 0)';
-            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-            resetStrokeStyle();
+            resetCanvasAndNeedle();
         }
     });
 
@@ -162,8 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.removeEventListener('touchmove', onTouchMove);
             isDragging = false;
             etchASketch.style.transform = 'translate(0, 0)';
-            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-            resetStrokeStyle();
+            resetCanvasAndNeedle();
         }
     });
 
