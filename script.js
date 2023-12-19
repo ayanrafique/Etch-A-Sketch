@@ -1,52 +1,69 @@
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('screen');
     const ctx = canvas.getContext('2d');
+    const offscreenCanvas = document.createElement('canvas');
+    const offscreenCtx = offscreenCanvas.getContext('2d');
     let x = canvas.width / 2;
     let y = canvas.height / 2;
     let isDrawing = false;
     let lastAngle = {};
     let isDragging = false;
     let dragStartX, dragStartY;
-    let lineHistory = [];
 
     function setupCanvas() {
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-        ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
-        ctx.lineWidth = 1;
-        ctx.lineCap = 'round';
+        canvas.width = offscreenCanvas.width = canvas.offsetWidth;
+        canvas.height = offscreenCanvas.height = canvas.offsetHeight;
+        resetStrokeStyle();
+        ctx.lineWidth = offscreenCtx.lineWidth = 1;
+        ctx.lineCap = offscreenCtx.lineCap = 'round';
     }
 
     setupCanvas();
 
+    function resetStrokeStyle() {
+        offscreenCtx.strokeStyle = 'rgba(0, 0, 0, 1)';
+        offscreenCtx.globalAlpha = 1.0;
+    }
+
+    function isWithinScreenBounds(newX, newY) {
+        const padding = 10;
+        return (
+            newX >= padding &&
+            newX <= canvas.width - padding &&
+            newY >= padding &&
+            newY <= canvas.height - padding
+        );
+    }
+
     function drawLine(direction, amount) {
         if (!isDrawing) return;
 
-        ctx.beginPath();
-        ctx.moveTo(x, y);
+        let newX = x;
+        let newY = y;
 
-        if (direction === 'horizontal') x += amount;
-        else if (direction === 'vertical') y += amount;
+        if (direction === 'horizontal') {
+            newX += amount;
+        } else if (direction === 'vertical') {
+            newY += amount;
+        }
 
-        ctx.lineTo(x, y);
-        ctx.stroke();
+        if (isWithinScreenBounds(newX, newY)) {
+            offscreenCtx.beginPath();
+            offscreenCtx.moveTo(x, y);
+            offscreenCtx.lineTo(newX, newY);
+            offscreenCtx.stroke();
 
-        // Save the line segment
-        lineHistory.push({x1: x, y1: y, x2: x + amount, y2: y + amount});
-    }
+            x = newX;
+            y = newY;
+        }
 
-    function redrawLines() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-        lineHistory.forEach(segment => {
-            ctx.moveTo(segment.x1, segment.y1);
-            ctx.lineTo(segment.x2, segment.y2);
-        });
-        ctx.stroke();
+        ctx.drawImage(offscreenCanvas, 0, 0);
+        drawNeedlePoint(x, y);
     }
 
     function drawNeedlePoint(nx, ny) {
-        const needleRadius = 1;
+        const needleRadius = 2;
         ctx.fillStyle = 'white';
         ctx.beginPath();
         ctx.arc(nx, ny, needleRadius, 0, 2 * Math.PI);
@@ -101,8 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Draggable functionality for Etch A Sketch
-    const etchASketch = document.getElementById('etchASketch');
     etchASketch.addEventListener('mousedown', (e) => {
         if (!e.target.classList.contains('dial')) {
             isDragging = true;
@@ -119,9 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
             isDragging = false;
             etchASketch.style.cursor = 'grab';
             etchASketch.style.transform = 'translate(0, 0)';
-            lineHistory = [];
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            setupCanvas();
+            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+            resetStrokeStyle();
         }
     });
 
@@ -130,10 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const dx = e.clientX - dragStartX;
             const dy = e.clientY - dragStartY;
             etchASketch.style.transform = `translate(${dx}px, ${dy}px)`;
-
-            ctx.globalAlpha = 0.9;
-            redrawLines();
-            ctx.globalAlpha = 1.0;
         }
     }
 
@@ -152,9 +162,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.removeEventListener('touchmove', onTouchMove);
             isDragging = false;
             etchASketch.style.transform = 'translate(0, 0)';
-            lineHistory = [];
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            setupCanvas();
+            offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+            resetStrokeStyle();
         }
     });
 
@@ -164,10 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const dx = touch.clientX - dragStartX;
             const dy = touch.clientY - dragStartY;
             etchASketch.style.transform = `translate(${dx}px, ${dy}px)`;
-
-            ctx.globalAlpha = 0.9;
-            redrawLines();
-            ctx.globalAlpha = 1.0;
         }
     }
 });
