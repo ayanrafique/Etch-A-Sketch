@@ -1,46 +1,49 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('screen');
-    const ctx = canvas.getContext('2d');
-    const offscreenCanvas = document.createElement('canvas');
-    const offscreenCtx = offscreenCanvas.getContext('2d');
-    let x = canvas.width / 2;
-    let y = canvas.height / 2;
-    let isDrawing = false;
-    let lastAngle = {};
-    let isDragging = false;
-    let dragStartX, dragStartY;
-
-    function setupCanvas() {
-        canvas.width = offscreenCanvas.width = canvas.offsetWidth;
-        canvas.height = offscreenCanvas.height = canvas.offsetHeight;
-        resetStrokeStyle();
-        ctx.lineWidth = offscreenCtx.lineWidth = 1;
-        ctx.lineCap = offscreenCtx.lineCap = 'round';
-        drawNeedlePoint(x, y);  // Draw the initial needle point
+class EtchASketch {
+    constructor(canvasElement) {
+        this.canvas = canvasElement;
+        this.offscreenCanvas = document.createElement('canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+        this.x = this.canvas.width / 2;
+        this.y = this.canvas.height / 2;
+        this.isDrawing = false;
+        this.lastAngle = {};
+        this.isDragging = false;
+        this.dragStartX = 0;
+        this.dragStartY = 0;
+        this.setupCanvas();
+        this.attachEventListeners();
     }
 
-    setupCanvas();
-
-    function resetStrokeStyle() {
-        offscreenCtx.strokeStyle = 'rgba(0, 0, 0, 1)';
-        offscreenCtx.globalAlpha = 1.0;
+    setupCanvas() {
+        this.canvas.width = this.offscreenCanvas.width = this.canvas.offsetWidth;
+        this.canvas.height = this.offscreenCanvas.height = this.canvas.offsetHeight;
+        this.resetStrokeStyle();
+        this.ctx.lineWidth = this.offscreenCtx.lineWidth = 1;
+        this.ctx.lineCap = this.offscreenCtx.lineCap = 'round';
+        this.drawNeedlePoint();
     }
 
-    function isWithinScreenBounds(newX, newY) {
+    resetStrokeStyle() {
+        this.offscreenCtx.strokeStyle = 'rgba(0, 0, 0, 1)';
+        this.offscreenCtx.globalAlpha = 1.0;
+    }
+
+    isWithinScreenBounds(newX, newY) {
         const padding = 10;
         return (
             newX >= padding &&
-            newX <= canvas.width - padding &&
+            newX <= this.canvas.width - padding &&
             newY >= padding &&
-            newY <= canvas.height - padding
+            newY <= this.canvas.height - padding
         );
     }
 
-    function drawLine(direction, amount) {
-        if (!isDrawing) return;
+    drawLine(direction, amount) {
+        if (!this.isDrawing) return;
 
-        let newX = x;
-        let newY = y;
+        let newX = this.x;
+        let newY = this.y;
 
         if (direction === 'horizontal') {
             newX += amount;
@@ -48,137 +51,149 @@ document.addEventListener('DOMContentLoaded', () => {
             newY += amount;
         }
 
-        if (isWithinScreenBounds(newX, newY)) {
-            offscreenCtx.beginPath();
-            offscreenCtx.moveTo(x, y);
-            offscreenCtx.lineTo(newX, newY);
-            offscreenCtx.stroke();
+        if (this.isWithinScreenBounds(newX, newY)) {
+            this.offscreenCtx.beginPath();
+            this.offscreenCtx.moveTo(this.x, this.y);
+            this.offscreenCtx.lineTo(newX, newY);
+            this.offscreenCtx.stroke();
 
-            x = newX;
-            y = newY;
+            this.x = newX;
+            this.y = newY;
         }
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(offscreenCanvas, 0, 0);
-        drawNeedlePoint(x, y);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.drawImage(this.offscreenCanvas, 0, 0);
+        this.drawNeedlePoint();
     }
 
-    function drawNeedlePoint(nx, ny) {
+    drawNeedlePoint() {
         const needleRadius = 2;
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(nx, ny, needleRadius, 0, 2 * Math.PI);
-        ctx.fill();
+        this.ctx.fillStyle = 'white';
+        this.ctx.beginPath();
+        this.ctx.arc(this.x, this.y, needleRadius, 0, 2 * Math.PI);
+        this.ctx.fill();
     }
 
-    function resetCanvasAndNeedle() {
-        offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-    
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawNeedlePoint(x, y); 
+    resetCanvasAndNeedle() {
+        this.offscreenCtx.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.drawNeedlePoint();
     }
 
-    function getAngle(cx, cy, ex, ey) {
+    getAngle(cx, cy, ex, ey) {
         const dy = ey - cy;
         const dx = ex - cx;
         return Math.atan2(dy, dx);
     }
 
-    function handleDialMovement(dial, clientX, clientY) {
+    handleDialMovement(dial, clientX, clientY) {
         const rect = dial.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        const newAngle = getAngle(centerX, centerY, clientX, clientY);
+        const newAngle = this.getAngle(centerX, centerY, clientX, clientY);
         const dialId = dial.id;
 
-        if (typeof lastAngle[dialId] !== 'undefined') {
-            const deltaAngle = newAngle - lastAngle[dialId];
+        if (typeof this.lastAngle[dialId] !== 'undefined') {
+            const deltaAngle = newAngle - this.lastAngle[dialId];
             const direction = dialId === 'horizontalDial' ? 'horizontal' : 'vertical';
-            drawLine(direction, Math.sign(deltaAngle) * 2);
+            this.drawLine(direction, Math.sign(deltaAngle) * 2);
         }
 
-        lastAngle[dialId] = newAngle;
+        this.lastAngle[dialId] = newAngle;
         dial.style.transform = `rotate(${newAngle}rad)`;
     }
 
-    const dials = document.querySelectorAll('.dial');
-    dials.forEach(dial => {
-        dial.addEventListener('mousedown', (e) => {
-            isDrawing = true;
-        });
-        dial.addEventListener('mouseup', () => isDrawing = false);
-        dial.addEventListener('mouseleave', () => isDrawing = false);
-        dial.addEventListener('mousemove', (e) => {
-            if (!isDrawing) return;
-            handleDialMovement(e.target, e.clientX, e.clientY);
-        });
+    attachEventListeners() {
+        const etchASketchElement = this.canvas.parentElement;
+        const dials = document.querySelectorAll('.dial');
+        dials.forEach(dial => this.attachDialListeners(dial));
+        this.attachEtchASketchListeners(etchASketchElement);
+    }
 
+    attachDialListeners(dial) {
+        dial.addEventListener('mousedown', () => this.isDrawing = true);
+        dial.addEventListener('mouseup', () => this.isDrawing = false);
+        dial.addEventListener('mouseleave', () => this.isDrawing = false);
+        dial.addEventListener('mousemove', (e) => {
+            if (!this.isDrawing) return;
+            this.handleDialMovement(e.target, e.clientX, e.clientY);
+        });
         dial.addEventListener('touchstart', (e) => {
-            isDrawing = true;
+            this.isDrawing = true;
             e.preventDefault();
         });
-        dial.addEventListener('touchend', () => isDrawing = false);
+        dial.addEventListener('touchend', () => this.isDrawing = false);
         dial.addEventListener('touchmove', (e) => {
-            if (!isDrawing) return;
+            if (!this.isDrawing) return;
             e.preventDefault();
             const touch = e.targetTouches[0];
-            handleDialMovement(e.target, touch.clientX, touch.clientY);
+            this.handleDialMovement(e.target, touch.clientX, touch.clientY);
         });
-    });
+    }
 
-    etchASketch.addEventListener('mousedown', (e) => {
+    attachEtchASketchListeners(etchASketchElement) {
+        etchASketchElement.addEventListener('mousedown', (e) => this.handleEtchASketchMouseDown(e, etchASketchElement));
+        document.addEventListener('mouseup', () => this.handleEtchASketchMouseUp(etchASketchElement));
+        document.addEventListener('mousemove', (e) => this.handleEtchASketchMouseMove(e, etchASketchElement));
+        etchASketchElement.addEventListener('touchstart', (e) => this.handleEtchASketchTouchStart(e, etchASketchElement));
+        document.addEventListener('touchend', () => this.handleEtchASketchTouchEnd(etchASketchElement));
+        document.addEventListener('touchmove', (e) => this.handleEtchASketchTouchMove(e, etchASketchElement));
+    }
+
+    handleEtchASketchMouseDown(e, etchASketchElement) {
         if (!e.target.classList.contains('dial')) {
-            isDragging = true;
-            dragStartX = e.clientX - etchASketch.offsetLeft;
-            dragStartY = e.clientY - etchASketch.offsetTop;
-            document.addEventListener('mousemove', onMouseMove);
-            etchASketch.style.cursor = 'grabbing';
-        }
-    });
-
-    document.addEventListener('mouseup', () => {
-        if (isDragging) {
-            document.removeEventListener('mousemove', onMouseMove);
-            isDragging = false;
-            etchASketch.style.cursor = 'grab';
-            etchASketch.style.transform = 'translate(0, 0)';
-            resetCanvasAndNeedle();
-        }
-    });
-
-    function onMouseMove(e) {
-        if (isDragging) {
-            const dx = e.clientX - dragStartX;
-            const dy = e.clientY - dragStartY;
-            etchASketch.style.transform = `translate(${dx}px, ${dy}px)`;
+            this.isDragging = true;
+            this.dragStartX = e.clientX - etchASketchElement.offsetLeft;
+            this.dragStartY = e.clientY - etchASketchElement.offsetTop;
+            etchASketchElement.style.cursor = 'grabbing';
         }
     }
 
-    etchASketch.addEventListener('touchstart', (e) => {
-        if (!e.target.classList.contains('dial')) {
-            const touch = e.touches[0];
-            dragStartX = touch.clientX - etchASketch.offsetLeft;
-            dragStartY = touch.clientY - etchASketch.offsetTop;
-            isDragging = true;
-            document.addEventListener('touchmove', onTouchMove);
-        }
-    });
-
-    document.addEventListener('touchend', () => {
-        if (isDragging) {
-            document.removeEventListener('touchmove', onTouchMove);
-            isDragging = false;
-            etchASketch.style.transform = 'translate(0, 0)';
-            resetCanvasAndNeedle();
-        }
-    });
-
-    function onTouchMove(e) {
-        if (isDragging) {
-            const touch = e.touches[0];
-            const dx = touch.clientX - dragStartX;
-            const dy = touch.clientY - dragStartY;
-            etchASketch.style.transform = `translate(${dx}px, ${dy}px)`;
+    handleEtchASketchMouseUp(etchASketchElement) {
+        if (this.isDragging) {
+            this.isDragging = false;
+            etchASketchElement.style.cursor = 'grab';
+            etchASketchElement.style.transform = 'translate(0, 0)';
+            this.resetCanvasAndNeedle();
         }
     }
+
+    handleEtchASketchMouseMove(e, etchASketchElement) {
+        if (this.isDragging) {
+            const dx = e.clientX - this.dragStartX;
+            const dy = e.clientY - this.dragStartY;
+            etchASketchElement.style.transform = `translate(${dx}px, ${dy}px)`;
+        }
+    }
+
+    handleEtchASketchTouchStart(e, etchASketchElement) {
+        if (!e.target.classList.contains('dial')) {
+            const touch = e.touches[0];
+            this.dragStartX = touch.clientX - etchASketchElement.offsetLeft;
+            this.dragStartY = touch.clientY - etchASketchElement.offsetTop;
+            this.isDragging = true;
+        }
+    }
+
+    handleEtchASketchTouchEnd(etchASketchElement) {
+        if (this.isDragging) {
+            this.isDragging = false;
+            etchASketchElement.style.transform = 'translate(0, 0)';
+            this.resetCanvasAndNeedle();
+        }
+    }
+
+    handleEtchASketchTouchMove(e, etchASketchElement) {
+        if (this.isDragging) {
+            const touch = e.touches[0];
+            const dx = touch.clientX - this.dragStartX;
+            const dy = touch.clientY - this.dragStartY;
+            etchASketchElement.style.transform = `translate(${dx}px, ${dy}px)`;
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('screen');
+    new EtchASketch(canvas);
 });
